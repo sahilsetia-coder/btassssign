@@ -188,6 +188,23 @@
         .flash-red { animation: flashRed 0.3s ease; }
         @keyframes flashRed { 0%, 100% { background: #000; } 50% { background: rgba(244,63,94,0.3); } }
 
+        /* --- AI CHATBOT --- */
+        .chat-container { display: flex; flex-direction: column; height: 100%; max-height: 600px; background: #000; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .chat-history { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .chat-message { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.5; animation: fadeUp 0.3s ease; }
+        .msg-bot { background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8)); border: 1px solid rgba(56,189,248,0.2); border-bottom-left-radius: 4px; align-self: flex-start; color: var(--text-main); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .msg-bot-title { display: flex; align-items: center; gap: 6px; font-weight: bold; color: var(--primary); font-size: 0.75rem; margin-bottom: 4px; }
+        .msg-user { background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); border-bottom-right-radius: 4px; align-self: flex-end; color: white; display: inline-block; }
+        .chat-input-area { display: flex; gap: 10px; padding: 1rem; background: var(--bg-surface); border-top: 1px solid var(--border); }
+        .chat-input { flex: 1; padding: 12px 16px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 8px; color: white; font-family: var(--font-sans); }
+        .chat-input:focus { outline: none; border-color: var(--primary); }
+        .chat-btn { padding: 12px 24px; background: var(--primary); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: var(--transition); }
+        .chat-btn:hover { background: #0ea5e9; }
+        .typing-indicator { display: flex; gap: 4px; padding: 4px; }
+        .typ-dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: typing 1.4s infinite ease-in-out; }
+        .typ-dot:nth-child(1) { animation-delay: 0s; } .typ-dot:nth-child(2) { animation-delay: 0.2s; } .typ-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
+
         @media (max-width: 600px) {
             .academic-header { flex-direction: column; align-items: flex-start; gap: 10px; }
             .submission-badge { text-align: left; width: 100%; }
@@ -240,6 +257,7 @@
             <div class="nav-item" onclick="bioApp.switchTab('taxonomy', this)">🌳 Taxonomy</div>
             <div class="nav-item" onclick="bioApp.switchTab('fasta', this)">📄 FASTA</div>
             <div class="nav-item" onclick="bioApp.switchTab('puzzle', this)">🎮 Puzzle</div>
+            <div class="nav-item" onclick="bioApp.switchTab('chatbot', this)">🤖 AI Assistant</div>
             <div class="nav-item" onclick="bioApp.switchTab('source', this)" style="color: var(--success);">💻 Source Code</div>
         </div>
     </div>
@@ -495,6 +513,24 @@
                 <div style="font-size:3rem; color:var(--primary); font-family:var(--font-mono); font-weight:bold; margin-bottom:1rem;" id="puzFinalTime">0.0s</div>
                 <p style="color:var(--text-muted); margin-bottom:2rem;" id="puzEndMsg"></p>
                 <button class="btn" style="margin:0 auto;" onclick="bioApp.startPuzzle()">Play Again</button>
+            </div>
+        </div>
+
+        <div id="view-chatbot" class="view">
+            <h2 class="section-title">BioWorkbench AI Assistant</h2>
+            <p class="section-desc">Ask questions about bioinformatics, genomic analysis, or the sequence currently loaded in your dashboard.</p>
+            
+            <div class="chat-container">
+                <div class="chat-history" id="chatHistory">
+                    <div class="chat-message msg-bot">
+                        <div class="msg-bot-title">🤖 BioBot Expert System</div>
+                        Hello! I am your AI bioinformatics assistant. Try asking me about GC Content, Open Reading Frames, or the metadata of the sequence you just analyzed!
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInputBar" class="chat-input" placeholder="Ask about DNA, RNA, genes, or your sequence..." onkeypress="if(event.key === 'Enter') bioApp.sendChatMessage()">
+                    <button class="chat-btn" onclick="bioApp.sendChatMessage()">Send 📤</button>
+                </div>
             </div>
         </div>
 
@@ -1617,6 +1653,125 @@ const bioApp = {
         
         document.getElementById('puzFinalTime').textContent = total + 's';
         document.getElementById('puzEndMsg').textContent = `You synthesized 25 base pairs of the ${this.data.metadata?.title ? this.data.metadata.title.substring(0,30)+'...' : 'genome'} with ${this.puzzleState.penalties} mutation penalty hits.`;
+    },
+
+    // ====== FEATURE 9: AI CHATBOT ======
+    chatbotState: {
+        typing: false
+    },
+    
+    sendChatMessage: function() {
+        if(this.chatbotState.typing) return;
+        
+        const input = document.getElementById('chatInputBar');
+        const text = input.value.trim();
+        if(!text) return;
+        
+        input.value = '';
+        this.appendChatMessage(text, 'user');
+        
+        this.chatbotState.typing = true;
+        const history = document.getElementById('chatHistory');
+        
+        // Add thinking indicator
+        const typingMsg = document.createElement('div');
+        typingMsg.className = 'chat-message msg-bot';
+        typingMsg.id = 'botTyping';
+        typingMsg.innerHTML = '<div class="msg-bot-title">🤖 BioBot Thinking</div><div class="typing-indicator"><div class="typ-dot"></div><div class="typ-dot"></div><div class="typ-dot"></div></div>';
+        history.appendChild(typingMsg);
+        history.scrollTop = history.scrollHeight;
+        
+        // Simulating artificial delay depending on text length
+        setTimeout(() => {
+            document.getElementById('botTyping').remove();
+            this.chatbotState.typing = false;
+            
+            const reply = this.generateSmartBotResponse(text);
+            this.appendChatMessage(reply, 'bot');
+        }, 1200 + Math.random() * 800);
+    },
+    
+    appendChatMessage: function(text, sender) {
+        const history = document.getElementById('chatHistory');
+        const msg = document.createElement('div');
+        msg.className = `chat-message msg-${sender}`;
+        
+        if (sender === 'bot') {
+            msg.innerHTML = `<div class="msg-bot-title">🤖 BioBot</div>${text}`;
+        } else {
+            msg.textContent = text;
+        }
+        
+        history.appendChild(msg);
+        history.scrollTop = history.scrollHeight;
+    },
+    
+    generateSmartBotResponse: function(q) {
+        const query = q.toLowerCase();
+        
+        // Context Awareness Check
+        const hasSeq = this.data.sequence && this.data.sequence.length > 0;
+        
+        if(query.includes('hello') || query.includes('hi ')) {
+            return "Hello scientist! How can I assist you with your genomic analysis today?";
+        }
+        
+        if(query.includes('who are you')) {
+            return "I am a smart AI Assistant integrated directly into BioWorkbench. Although I process everything client-side using rules, I can analyze your currently loaded genomic sequences!";
+        }
+        
+        if(query.includes('gc content') || query.includes('gc ratio')) {
+            if (hasSeq) {
+                return `The GC Content of your currently loaded sequence (${this.data.accession}) is **${this.data.gcPercent}%**. A higher GC content generally infers a higher melting temperature due to the 3 hydrogen bonds between Guanine and Cytosine!`;
+            }
+            return "GC content is the percentage of nitrogenous bases in a DNA or RNA molecule that are either guanine (G) or cytosine (C). Load a sequence via the dashboard to see its specific GC content!";
+        }
+        
+        if(query.includes('orf') || query.includes('open reading frame')) {
+            if (hasSeq) {
+                return `Using my analysis engine, I have found **${this.data.orfs.length}** Open Reading Frames (ORFs) in your sequence. You can visualize them in the Interactive Map tab or the Central Dogma tab!`;
+            }
+            return "An Open Reading Frame (ORF) is a portion of a DNA sequence that has the potential to be translated into a protein. It starts with a start codon (e.g., ATG) and ends with a stop codon (TAA, TAG, TGA).";
+        }
+        
+        if(query.includes('my sequence') || query.includes('what is loaded') || query.includes('metadata') || query.includes('summary')) {
+            if (hasSeq) {
+                return `You're currently working with **${this.data.accession}**, which belongs to <i>${this.data.metadata?.organism || "Unknown"}</i>. The sequence length is ${(this.data.sequence.length/1000).toFixed(1)} kb.`;
+            }
+            return "I don't see any sequence loaded right now! Try entering an accession ID like <b>NC_002377</b> in the top bar and clicking 'Analyze'.";
+        }
+        
+        if(query.includes('patholog') || query.includes('disease') || query.includes('tumor')) {
+            if(hasSeq && (this.data.pathology.crownGall || this.data.pathology.hairyRoot)) {
+                return "Oh! Based on the pathological scanner, I actually found potential virulence markers in your sequence. Go to the **Pathology Diagnostics** tab to see exactly what Agrobacterium markers were triggered.";
+            }
+            return "Pathogenicity diagnostics search for specific oncogenes or virulence markers (like Ti or Ri plasmid markers). I can run that scan automatically when you query a sequence.";
+        }
+        
+        if(query.includes('crispr') || query.includes('cas9')) {
+             return "CRISPR-Cas9 is a groundbreaking gene-editing technology derived from a bacterial immune system. You can use the 'PubMed Literature Search' tab to find recent papers relating to CRISPR!";
+        }
+
+        if(query.includes('fasta')) {
+            return "FASTA is a text-based format for representing either nucleotide sequences or amino acid (protein) sequences. You can view or download the raw FASTA of your sequence in the FASTA Viewer tab.";
+        }
+        
+        if(query.includes('cpg island') || query.includes('methylation')) {
+             if(hasSeq) {
+                  return `I found **${this.data.cpgIslands.length}** potential CpG islands in this genome. They are often found near gene promoters and their methylation plays a critical role in gene regulation.`;
+             }
+             return "CpG islands are regions of DNA where a cytosine nucleotide is followed by a guanine nucleotide in the linear sequence of bases along its 5' → 3' direction. They are highly relevant in epigenetics.";
+        }
+        
+        // Fallback response for generic biology
+        const fallbacks = [
+            "That's an interesting question! Based on my biological data, that relates deeply to molecular genetics. Try loading a sequence or checking out the 'PubMed Literature' tab to dive deeper into papers about this.",
+            "I'm an AI assistant focused specifically on the data inside BioWorkbench. Try asking me to analyze your sequence's GC content, ORFs, or pathology!",
+            "Fascinating query! Did you know that the Central Dogma tab can simulate transcription and translation in real time? You should check it out while considering this concept.",
+            "I am programmed to be a smart local assistant. I don't know everything, but I do know that your currently loaded sequence dictates the available tools in the workbench. Please select a sequence!"
+        ];
+        
+        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
 };
 

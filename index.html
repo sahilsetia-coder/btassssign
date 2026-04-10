@@ -205,7 +205,8 @@
             <div class="nav-item" onclick="bioApp.switchTab('literature', this)">📚 Literature</div>
             <div class="nav-item" onclick="bioApp.switchTab('geneinsights', this)">🧬 Gene Insights</div>
             <div class="nav-item" onclick="bioApp.switchTab('gcgraph', this)">📊 GC Graph</div>
-            <div class="nav-item" onclick="bioApp.switchTab('plasmidvector', this)">🧫 Vector Map</div>
+            <div class="nav-item" onclick="bioApp.switchTab('taxonomy', this)">🌳 Taxonomy</div>
+            <div class="nav-item" onclick="bioApp.switchTab('fasta', this)">📄 FASTA</div>
             <div class="nav-item" onclick="bioApp.switchTab('source', this)" style="color: var(--success);">💻 Source Code</div>
         </div>
     </div>
@@ -329,9 +330,35 @@
 
         <div id="view-literature" class="view">
             <h2 class="section-title">PubMed Literature Match</h2>
-            <p class="section-desc">Recent published research papers related to the sequenced organism.</p>
+            <p class="section-desc">Search and fetch research papers related to any topic or organism.</p>
+            <div style="display:flex; gap:10px; margin-bottom: 1.5rem;">
+                <input type="text" id="paperSearchInput" placeholder="Enter keywords (e.g., CRISPR, E. coli...)" style="flex:1;">
+                <button class="btn" style="padding: 12px 20px; font-size:0.85rem;" onclick="bioApp.fetchLiterature(document.getElementById('paperSearchInput').value)">Search Papers</button>
+            </div>
             <div class="card" id="papersContainer">
-                <div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Run pipeline to fetch literature...</div>
+                <div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Run pipeline or search to fetch literature...</div>
+            </div>
+        </div>
+
+        <div id="view-fasta" class="view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h2 class="section-title">FASTA Viewer</h2>
+                    <p class="section-desc" style="margin-bottom: 0;">Raw nucleotide sequence in standard FASTA format.</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" style="background: var(--primary); padding: 8px 16px; font-size: 0.85rem;" onclick="bioApp.copyFasta()">📋 Copy</button>
+                    <button class="btn" style="background: var(--secondary); padding: 8px 16px; font-size: 0.85rem;" onclick="bioApp.downloadFasta()">📥 Download</button>
+                </div>
+            </div>
+            <div class="seq-box" id="fastaContainer" style="white-space: pre-wrap; font-size:12px; line-height: 1.5;">Run pipeline to view FASTA...</div>
+        </div>
+
+        <div id="view-taxonomy" class="view">
+            <h2 class="section-title">Taxonomy Explorer</h2>
+            <p class="section-desc">Phylogenetic lineage and classification derived from NCBI Taxonomy database.</p>
+            <div class="card" id="taxonomyContainer">
+                <div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Run pipeline to resolve taxonomic lineage...</div>
             </div>
         </div>
 
@@ -428,6 +455,127 @@ const bioApp = {
         return ["M", start.x, start.y, "A", r, r, 0, largeArcFlag, 0, end.x, end.y].join(" ");
     },
 
+    renderFasta: function() {
+        if (!this.data.sequence || !this.data.accession) return;
+        const width = 80;
+        let fastaStr = `>${this.data.accession} | ${this.data.metadata?.title || 'Unknown Sequence'}\n`;
+        const seq = this.data.sequence;
+        for (let i = 0; i < seq.length; i += width) {
+            fastaStr += seq.substring(i, i + width) + '\n';
+        }
+        document.getElementById('fastaContainer').textContent = fastaStr;
+    },
+
+    copyFasta: function() {
+        const text = document.getElementById('fastaContainer').textContent;
+        if(text.includes('Run pipeline')) return alert('No sequence to copy.');
+        navigator.clipboard.writeText(text).then(() => alert("✅ FASTA copied to clipboard!")).catch(() => alert("Failed to copy."));
+    },
+
+    downloadFasta: function() {
+        const text = document.getElementById('fastaContainer').textContent;
+        if(text.includes('Run pipeline')) return alert('No sequence to download.');
+        const blob = new Blob([text], {type: "text/plain"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${this.data.accession || 'sequence'}.fasta`;
+        a.click();
+    },
+
+    fetchTaxonomy: async function(taxid) {
+        const container = document.getElementById('taxonomyContainer');
+        if(!taxid) return container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">No Taxonomy ID available in metadata.</div>';
+        container.innerHTML = '<div style="text-align:center; color:var(--warning); padding:2rem;"><span class="spinner-inline"></span> Resolving Taxonomy...</div>';
+        try {
+            let res = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id=${taxid}&retmode=xml&api_key=${API_KEY}`);
+            let xmlText = await res.text();
+            let parser = new DOMParser();
+            let xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            
+            let taxon = xmlDoc.querySelector('Taxon');
+            if(!taxon) throw new Error("No taxonomy info");
+            
+            let sciName = taxon.querySelector('ScientificName').textContent;
+            let lineageElements = taxon.querySelectorAll('LineageEx > Taxon');
+            
+            let html = `<div style="font-size:1.1rem; color:var(--primary); font-weight:bold; margin-bottom:1rem; text-align:center;">${sciName} (TaxID: ${taxid})</div>`;
+            html += '<div style="display:flex; flex-direction:column; gap:8px; text-align:left; max-width:400px; margin:0 auto; background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:8px; border:1px solid var(--border);">';
+            
+            let indent = 0;
+            lineageElements.forEach(t => {
+                let rank = t.querySelector('Rank') ? t.querySelector('Rank').textContent : 'node';
+                let name = t.querySelector('ScientificName').textContent;
+                html += `<div style="padding-left:${indent}px; display:flex; align-items:center; gap:8px;">
+                            <span style="color:var(--text-muted);">└─</span>
+                            <span class="badge" style="background:rgba(255,255,255,0.1); font-size:0.65rem;">${rank}</span>
+                            <strong style="color:var(--text-main); font-size:0.9rem;">${name}</strong>
+                         </div>`;
+                indent += 15;
+            });
+            html += `<div style="padding-left:${indent}px; display:flex; align-items:center; gap:8px; margin-top:4px;">
+                        <span style="color:var(--primary);">└─</span>
+                        <span class="badge" style="background:rgba(56,189,248,0.2); color:var(--primary); font-size:0.65rem;">organism</span>
+                        <strong style="color:var(--primary); font-size:0.9rem;">${sciName}</strong>
+                     </div>`;
+            html += '</div>';
+            container.innerHTML = html;
+        } catch(e) {
+            container.innerHTML = '<div style="color:var(--danger);text-align:center;padding:2rem;">Failed to fetch taxonomy data.</div>';
+        }
+    },
+
+    fetchProteinInfo: async function(proteinId) {
+        document.getElementById('modalBody').innerHTML = `<div style="text-align:center; padding:2rem;"><span class="spinner-inline"></span> Fetching Protein Info...</div>`;
+        try {
+            let res = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=protein&id=${proteinId}&retmode=json&api_key=${API_KEY}`);
+            let data = await res.json();
+            let uid = data.result.uids[0];
+            let pData = data.result[uid];
+            
+            let html = `<div class="modal-title">🥩 Protein: ${proteinId}</div>`;
+            html += `<p style="color:var(--primary); margin-bottom:1rem; font-weight:bold;">${pData.title || 'Unknown Protein'}</p>`;
+            html += `<table style="margin-bottom:1.5rem;">
+                <tr><th style="width:120px;">Length</th><td>${pData.slen || '?'} aa</td></tr>
+                <tr><th>Accession</th><td>${pData.caption}</td></tr>
+                <tr><th>Organism</th><td>${pData.organism || '?'}</td></tr>
+                <tr><th>TaxID</th><td>${pData.taxid || '?'}</td></tr>
+            </table>`;
+            
+            try {
+                let gpRes = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=protein&id=${uid}&rettype=gp&retmode=text&api_key=${API_KEY}`);
+                let gpText = await gpRes.text();
+                let regions = [];
+                let lines = gpText.split('\n');
+                for(let i=0; i<lines.length; i++) {
+                    let m = lines[i].match(/^     Region          (\d+\.\.\d+)/);
+                    if(m) {
+                        let loc = m[1];
+                        let note = "";
+                        for(let j=i+1; j<i+5 && j<lines.length; j++){
+                            if(!lines[j].startsWith("                     ")) break;
+                            let mm = lines[j].match(/\/region_name="([^"]+)"/);
+                            if(mm) note = mm[1];
+                        }
+                        if(note) regions.push(`${loc}: ${note}`);
+                    }
+                }
+                
+                if(regions.length > 0) {
+                    html += `<div class="card-label" style="margin-bottom:8px;">Conserved Domains / Features</div>`;
+                    html += `<div class="seq-box" style="margin-bottom:1.5rem;">`;
+                    regions.forEach(r => html += `<div><span style="color:var(--success);">▶</span> ${r}</div>`);
+                    html += `</div>`;
+                }
+
+            } catch(e) {}
+            
+            html += `<button class="btn" style="width:100%;" onclick="bioApp.closeModal()">Close Details</button>`;
+            document.getElementById('modalBody').innerHTML = html;
+        } catch(e) {
+            document.getElementById('modalBody').innerHTML = `<div style="color:var(--danger);text-align:center;padding:2rem;">Failed to retrieve protein details.</div><button class="btn" style="width:100%;" onclick="bioApp.closeModal()">Close</button>`;
+        }
+    },
+
     switchTab: function(viewId, btn) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         btn.classList.add('active');
@@ -439,6 +587,7 @@ const bioApp = {
         if(viewId === 'dna') this.startDNA(); else this.stopDNA();
         if(viewId === 'gcgraph') this.renderGCGraph();
         if(viewId === 'plasmidvector') this.drawVectorMap();
+        if(viewId === 'fasta') this.renderFasta();
     },
 
     // --- ENHANCED 3D GENE ENGINE (MATHEMATICAL PROJECTION) ---
@@ -645,6 +794,7 @@ const bioApp = {
             
             this.fetchLiterature(this.data.metadata.organism || this.data.metadata.title);
             this.fetchGeneAnnotations();
+            this.fetchTaxonomy(this.data.metadata.taxid);
             this.updateDOM();
             this.setStatus("Pipeline execution completed.");
         } catch (err) {
@@ -968,7 +1118,7 @@ const bioApp = {
         const g = this.data.genes[index]; if (!g) return;
         const pLen = g.translation ? g.translation.length + ' aa' : 'N/A';
         const mass = g.translation ? ((g.translation.length * 110) / 1000).toFixed(1) + ' kDa' : 'N/A';
-        this.openModal(`<div class="modal-title">${g.gene || 'Gene Details'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;"><div class="card" style="margin:0;"><div class="card-label">Position</div><div class="card-value" style="font-size:1rem;">${g.start||'?'} - ${g.end||'?'}</div></div><div class="card" style="margin:0;"><div class="card-label">Strand</div><div class="card-value" style="font-size:1rem;">${g.complement?'Complement (−)':'Forward (+)'}</div></div><div class="card" style="margin:0;"><div class="card-label">Protein Length</div><div class="card-value" style="font-size:1rem;">${pLen}</div></div><div class="card" style="margin:0;"><div class="card-label">Est. Mass</div><div class="card-value" style="font-size:1rem;">${mass}</div></div></div><div class="card-label" style="margin-bottom:8px;">Product / Function</div><p style="color:var(--text-muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.5rem;">${g.product || g.note || 'No description'}</p>${g.protein_id ? `<div style="font-size:0.8rem;margin-bottom:1rem;"><strong style="color:white;">Protein ID:</strong> <span class="mono" style="color:var(--primary);">${g.protein_id}</span></div>` : ''}${g.translation ? `<div class="card-label" style="margin-bottom:8px;">Protein Sequence</div><div class="seq-box" style="font-size:10px;max-height:150px;">${g.translation}</div>` : ''}`);
+        this.openModal(`<div class="modal-title">${g.gene || 'Gene Details'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;"><div class="card" style="margin:0;"><div class="card-label">Position</div><div class="card-value" style="font-size:1rem;">${g.start||'?'} - ${g.end||'?'}</div></div><div class="card" style="margin:0;"><div class="card-label">Strand</div><div class="card-value" style="font-size:1rem;">${g.complement?'Complement (−)':'Forward (+)'}</div></div><div class="card" style="margin:0;"><div class="card-label">Protein Length</div><div class="card-value" style="font-size:1rem;">${pLen}</div></div><div class="card" style="margin:0;"><div class="card-label">Est. Mass</div><div class="card-value" style="font-size:1rem;">${mass}</div></div></div><div class="card-label" style="margin-bottom:8px;">Product / Function</div><p style="color:var(--text-muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.5rem;">${g.product || g.note || 'No description'}</p>${g.protein_id ? `<div style="font-size:0.8rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px;"><strong style="color:white;">Protein ID:</strong> <span class="mono" style="color:var(--primary);">${g.protein_id}</span> <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:var(--secondary);" onclick="bioApp.fetchProteinInfo('${g.protein_id}')">Fetch Protein API Data</button></div>` : ''}${g.translation ? `<div class="card-label" style="margin-bottom:8px;">Protein Sequence</div><div class="seq-box" style="font-size:10px;max-height:150px;">${g.translation}</div>` : ''}`);
     },
 
     showORFModal: function(index) {
@@ -1214,3 +1364,4 @@ window.addEventListener('resize', () => {
 </script>
 </body>
 </html>
+

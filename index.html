@@ -156,6 +156,18 @@
 
         .spinner-inline { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
 
+        /* --- CENTRAL DOGMA ANIMATION --- */
+        #dogmaAnimationStage { display: none; background: #000; border: 1px solid var(--primary); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; position: relative; overflow: hidden; text-align: center; }
+        .dogma-title { font-size: 1.2rem; color: var(--primary); margin-bottom: 1.5rem; }
+        .dna-track { font-family: var(--font-mono); font-size: 1.2rem; letter-spacing: 4px; color: var(--text-main); margin-bottom: 3rem; white-space: nowrap; position: relative; display: inline-block; }
+        .mrna-track { font-family: var(--font-mono); font-size: 1.2rem; letter-spacing: 4px; color: var(--secondary); margin-bottom: 3rem; white-space: nowrap; position: relative; display: inline-block; }
+        .polymerase { position: absolute; width: 40px; height: 50px; background: rgba(56,189,248,0.3); border: 2px solid #38bdf8; border-radius: 8px; top: -10px; left: -10px; z-index: 5; transition: transform 0.2s linear; backdrop-filter: blur(2px); }
+        .ribosome { position: absolute; width: 60px; height: 70px; background: rgba(244,63,94,0.3); border: 2px solid #f43f5e; border-radius: 30px 30px 10px 10px; top: -15px; left: -15px; z-index: 5; transition: transform 0.5s ease-in-out; backdrop-filter: blur(2px); display: none; }
+        .ribosome::after { content: ''; position: absolute; bottom: -20px; left: 10px; right: 10px; height: 20px; background: rgba(244,63,94,0.3); border: 2px solid #f43f5e; border-radius: 10px; }
+        .aa-chain { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 1rem; min-height: 40px; }
+        .aa-node { background: var(--primary); color: #000; font-size: 0.8rem; font-weight: bold; width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; animation: popIn 0.3s ease-out; }
+        @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
         /* --- DNA PUZZLE GAME --- */
         .puzzle-board { background: #000; border: 1px solid var(--border); border-radius: 12px; padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 2rem; position: relative; overflow: hidden; }
         .puzzle-track { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; max-width: 600px; }
@@ -305,10 +317,29 @@
         <div id="view-dogma" class="view">
             <h2 class="section-title">Central Dogma Engine</h2>
             <p class="section-desc">In-silico transcription to mRNA and translation to Polypeptides.</p>
+            
+            <div id="dogmaAnimationStage">
+                <div class="dogma-title" id="daTitle">Transcription: DNA → mRNA</div>
+                <div style="overflow-x:auto; padding-bottom:1rem; position:relative;">
+                    <div style="position:relative; display:inline-block; margin-bottom:2rem;">
+                        <div class="polymerase" id="daPolymerase"></div>
+                        <div class="dna-track" id="daDna"></div>
+                    </div>
+                    <br>
+                    <div style="position:relative; display:inline-block;">
+                        <div class="ribosome" id="daRibosome"></div>
+                        <div class="mrna-track" id="daMrna"></div>
+                    </div>
+                </div>
+                <div class="dogma-title" style="margin-top:1rem; display:none;" id="daProtTitle">Polypeptide Chain Synthesis</div>
+                <div class="aa-chain" id="daProtein"></div>
+                <button class="btn" style="margin-top:2rem;" onclick="document.getElementById('dogmaAnimationStage').style.display='none'">Close Animation</button>
+            </div>
+
             <div class="table-container">
                 <table>
-                    <thead><tr><th>Gene ID</th><th>Coordinates</th><th>Protein Length</th><th>Est. Mass</th></tr></thead>
-                    <tbody id="orfTable"><tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Run pipeline to compute...</td></tr></tbody>
+                    <thead><tr><th>Gene ID</th><th>Coordinates</th><th>Protein Length</th><th>Est. Mass</th><th>Action</th></tr></thead>
+                    <tbody id="orfTable"><tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Run pipeline to compute...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -1070,7 +1101,7 @@ const bioApp = {
 
         this.data.orfs.slice(0, 15).forEach((orf, i) => {
             let tr = document.createElement('tr');
-            tr.innerHTML = `<td class="mono" style="color:var(--primary); cursor:pointer;" onclick="bioApp.showORFModal(${i})">${orf.id}</td><td class="mono">${orf.start} - ${orf.stop}</td><td>${orf.protein.length} aa</td><td>~${orf.mw} kDa</td>`;
+            tr.innerHTML = `<td class="mono" style="color:var(--primary); cursor:pointer;" onclick="bioApp.showORFModal(${i})">${orf.id}</td><td class="mono">${orf.start} - ${orf.stop}</td><td>${orf.protein.length} aa</td><td>~${orf.mw} kDa</td><td><button class="btn" style="padding:4px 8px; font-size:0.75rem; background:var(--secondary);" onclick="event.stopPropagation(); bioApp.runDogmaAnimation(${i})">▶ Animate</button></td>`;
             tr.style.cursor = 'pointer';
             tr.onclick = () => this.showORFModal(i);
             orfTbody.appendChild(tr);
@@ -1186,6 +1217,97 @@ const bioApp = {
         let ph = '';
         for (let i = 0; i < orf.protein.length; i++) { const c = orf.protein[i]; ph += c === 'M' && i === 0 ? '<span class="codon-start">M</span>' : c === '*' ? '<span class="codon-stop">*</span>' : c; }
         this.openModal(`<div class="modal-title">${orf.id} — ORF Details</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;"><div class="card" style="margin:0;"><div class="card-label">Position</div><div class="card-value" style="font-size:1rem;">${orf.start} - ${orf.stop} bp</div></div><div class="card" style="margin:0;"><div class="card-label">Length</div><div class="card-value" style="font-size:1rem;">${orf.length} nt</div></div><div class="card" style="margin:0;"><div class="card-label">Protein</div><div class="card-value" style="font-size:1rem;">${orf.protein.length} aa</div></div><div class="card" style="margin:0;"><div class="card-label">Est. Mass</div><div class="card-value" style="font-size:1rem;">~${orf.mw} kDa</div></div></div><div class="card-label" style="margin-bottom:8px;">Protein Sequence</div><div class="translation-output">${ph}</div>`);
+    },
+
+    // ====== FEATURE: DOGMA ANIMATION ======
+    runDogmaAnimation: function(orfIndex) {
+        const orf = this.data.orfs[orfIndex];
+        if (!orf) return;
+        
+        const stage = document.getElementById('dogmaAnimationStage');
+        stage.style.display = 'block';
+        stage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        const dnaEl = document.getElementById('daDna');
+        const mrnaEl = document.getElementById('daMrna');
+        const protEl = document.getElementById('daProtein');
+        const poly = document.getElementById('daPolymerase');
+        const ribo = document.getElementById('daRibosome');
+        const daTitle = document.getElementById('daTitle');
+        const daProtTitle = document.getElementById('daProtTitle');
+        
+        // Take up to 60 bases to animate
+        const dnaSeq = orf.dna.substring(0, 60);
+        
+        dnaEl.textContent = dnaSeq;
+        mrnaEl.textContent = '';
+        protEl.innerHTML = '';
+        
+        daTitle.textContent = "Transcription: DNA → mRNA";
+        daProtTitle.style.display = 'none';
+        poly.style.display = 'block';
+        poly.style.transform = 'translateX(-10px)';
+        ribo.style.display = 'none';
+        
+        let i = 0;
+        let mrnaSeq = '';
+        let stepSize = 14.4; // approx letter spacing width for translation tracking
+        
+        const stepTranscribe = () => {
+            if (i >= dnaSeq.length) {
+                poly.style.display = 'none';
+                setTimeout(() => this.startTranslationAnim(mrnaSeq, stepSize), 1000);
+                return;
+            }
+            const base = dnaSeq[i];
+            const mBase = base === 'A' ? 'U' : (base === 'T' ? 'A' : (base === 'G' ? 'C' : 'G'));
+            mrnaSeq += mBase;
+            mrnaEl.textContent = mrnaSeq;
+            
+            poly.style.transform = `translateX(${i * stepSize}px)`; 
+            
+            i++;
+            setTimeout(stepTranscribe, 100);
+        };
+        
+        setTimeout(stepTranscribe, 500);
+    },
+    
+    startTranslationAnim: function(mrnaSeq, stepSize) {
+        const daTitle = document.getElementById('daTitle');
+        const daProtTitle = document.getElementById('daProtTitle');
+        const ribo = document.getElementById('daRibosome');
+        const protEl = document.getElementById('daProtein');
+        
+        daTitle.textContent = "Translation: mRNA → Polypeptide";
+        daProtTitle.style.display = 'block';
+        ribo.style.display = 'block';
+        ribo.style.transform = 'translateX(-15px)';
+        
+        let i = 0;
+        
+        const stepTranslate = () => {
+            if (i + 3 > mrnaSeq.length) {
+                daTitle.textContent = "Central Dogma Complete! ✅";
+                ribo.style.display = 'none';
+                return;
+            }
+            
+            ribo.style.transform = `translateX(${i * stepSize}px)`;
+            
+            const codon = mrnaSeq.substring(i, i+3);
+            const aa = this.codons[codon.replace(/U/g, 'T')] || '?';
+            
+            const aaNode = document.createElement('div');
+            aaNode.className = 'aa-node';
+            aaNode.textContent = aa;
+            protEl.appendChild(aaNode);
+            
+            i += 3;
+            setTimeout(stepTranslate, 800);
+        };
+        
+        setTimeout(stepTranslate, 500);
     },
 
     // ====== FEATURE 2: DNA → PROTEIN TRANSLATION ======

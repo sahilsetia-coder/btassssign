@@ -156,6 +156,26 @@
 
         .spinner-inline { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
 
+        /* --- DNA PUZZLE GAME --- */
+        .puzzle-board { background: #000; border: 1px solid var(--border); border-radius: 12px; padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 2rem; position: relative; overflow: hidden; }
+        .puzzle-track { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; max-width: 600px; }
+        .base-slot { width: 32px; height: 32px; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-family: var(--font-mono); font-weight: bold; font-size: 14px; transition: var(--transition); border: 2px solid transparent; }
+        .base-target { background: rgba(255,255,255,0.1); color: var(--text-main); border-color: rgba(255,255,255,0.2); }
+        .base-empty { background: rgba(0,0,0,0.5); border-color: rgba(255,255,255,0.1); border-style: dashed; }
+        .base-filled.A { background: rgba(244,63,94,0.15); color: #f43f5e; border-color: #f43f5e; box-shadow: 0 0 10px rgba(244,63,94,0.3); }
+        .base-filled.T { background: rgba(56,189,248,0.15); color: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.3); }
+        .base-filled.G { background: rgba(52,211,153,0.15); color: #34d399; border-color: #34d399; box-shadow: 0 0 10px rgba(52,211,153,0.3); }
+        .base-filled.C { background: rgba(251,191,36,0.15); color: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 10px rgba(251,191,36,0.3); }
+        .puzzle-controls { display: flex; gap: 1rem; }
+        .btn-base { width: 60px; height: 60px; border-radius: 8px; font-size: 1.5rem; font-weight: bold; cursor: pointer; transition: var(--transition); display: flex; justify-content: center; align-items: center; border: 2px solid; background: rgba(0,0,0,0.5); }
+        .btn-base.A { border-color: #f43f5e; color: #f43f5e; } .btn-base.A:hover, .btn-base.A:active { background: #f43f5e; color: #000; box-shadow: 0 0 20px rgba(244,63,94,0.5); }
+        .btn-base.T { border-color: #38bdf8; color: #38bdf8; } .btn-base.T:hover, .btn-base.T:active { background: #38bdf8; color: #000; box-shadow: 0 0 20px rgba(56,189,248,0.5); }
+        .btn-base.G { border-color: #34d399; color: #34d399; } .btn-base.G:hover, .btn-base.G:active { background: #34d399; color: #000; box-shadow: 0 0 20px rgba(52,211,153,0.5); }
+        .btn-base.C { border-color: #fbbf24; color: #fbbf24; } .btn-base.C:hover, .btn-base.C:active { background: #fbbf24; color: #000; box-shadow: 0 0 20px rgba(251,191,36,0.5); }
+        .hud-stats { display: flex; gap: 2rem; font-family: var(--font-mono); font-size: 1.2rem; margin-bottom: 1rem; }
+        .flash-red { animation: flashRed 0.3s ease; }
+        @keyframes flashRed { 0%, 100% { background: #000; } 50% { background: rgba(244,63,94,0.3); } }
+
         @media (max-width: 600px) {
             .academic-header { flex-direction: column; align-items: flex-start; gap: 10px; }
             .submission-badge { text-align: left; width: 100%; }
@@ -207,6 +227,7 @@
             <div class="nav-item" onclick="bioApp.switchTab('gcgraph', this)">📊 GC Graph</div>
             <div class="nav-item" onclick="bioApp.switchTab('taxonomy', this)">🌳 Taxonomy</div>
             <div class="nav-item" onclick="bioApp.switchTab('fasta', this)">📄 FASTA</div>
+            <div class="nav-item" onclick="bioApp.switchTab('puzzle', this)">🎮 Puzzle</div>
             <div class="nav-item" onclick="bioApp.switchTab('source', this)" style="color: var(--success);">💻 Source Code</div>
         </div>
     </div>
@@ -409,6 +430,43 @@
             </div>
         </div>
 
+        <div id="view-puzzle" class="view">
+            <h2 class="section-title">DNA Polymerase Simulator 🎮</h2>
+            <p class="section-desc">Test your speed by synthesizing the complementary strand of a random 25bp segment from the loaded genome. You can use your mouse or A, T, G, C keys.</p>
+            
+            <div id="puzzleStartScreen" class="card" style="text-align:center; padding:3rem;">
+                <h3 style="color:var(--primary); margin-bottom:1rem; font-size:1.5rem;">Ready to Synthesize?</h3>
+                <p style="color:var(--text-muted); margin-bottom:2rem;">Pair A-T and G-C. Each mistake adds a 1.5s penalty.</p>
+                <button class="btn" style="margin:0 auto; padding:12px 30px; font-size:1.1rem;" onclick="bioApp.startPuzzle()">Start Assembly</button>
+            </div>
+
+            <div id="puzzleGameScreen" class="puzzle-board" style="display:none;">
+                <div class="hud-stats">
+                    <div>⏱️ <span id="puzTime" style="color:var(--primary);">0.0</span>s</div>
+                    <div>⚠️ <span id="puzPenalties" style="color:var(--danger);">0</span></div>
+                </div>
+                
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div id="puzTargetStrand" class="puzzle-track"></div>
+                    <div id="puzUserStrand" class="puzzle-track"></div>
+                </div>
+
+                <div class="puzzle-controls">
+                    <div class="btn-base A" onclick="bioApp.handleBaseClick('A')">A</div>
+                    <div class="btn-base T" onclick="bioApp.handleBaseClick('T')">T</div>
+                    <div class="btn-base G" onclick="bioApp.handleBaseClick('G')">G</div>
+                    <div class="btn-base C" onclick="bioApp.handleBaseClick('C')">C</div>
+                </div>
+            </div>
+
+            <div id="puzzleEndScreen" class="card" style="display:none; text-align:center; padding:3rem; border-color:var(--success);">
+                <h3 style="color:var(--success); margin-bottom:1rem; font-size:1.5rem;">Synthesis Complete!</h3>
+                <div style="font-size:3rem; color:var(--primary); font-family:var(--font-mono); font-weight:bold; margin-bottom:1rem;" id="puzFinalTime">0.0s</div>
+                <p style="color:var(--text-muted); margin-bottom:2rem;" id="puzEndMsg"></p>
+                <button class="btn" style="margin:0 auto;" onclick="bioApp.startPuzzle()">Play Again</button>
+            </div>
+        </div>
+
     </main>
 
     <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this) bioApp.closeModal()">
@@ -426,6 +484,8 @@ const bioApp = {
     hintTimeout: null,
     sourceLoaded: false,
     dnaAnimationId: null,
+
+    puzzleState: { active: false, target: '', user: '', startTime: 0, penalties: 0, timerId: null },
 
     pathologyMarkers: {
         crownGall: { name: "Crown Gall Disease (Ti Plasmid)", markers: ["GATCCGTC", "ATGCCTGC", "TCGATGTC"] }, 
@@ -1346,6 +1406,95 @@ const bioApp = {
         genes.slice(0, 10).forEach(g => { txt += `${g.gene || 'Unknown'}: ${g.start||'?'}-${g.end||'?'} bp | ${g.product || 'N/A'}\n`; });
         const blob = new Blob([txt], { type: 'text/plain' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `BioReport_${acc}.txt`; a.click();
+    },
+
+    startPuzzle: function() {
+        if (!this.data.sequence || this.data.sequence.length < 50) return alert("Please run pipeline to load a genome first.");
+        
+        const maxStart = this.data.sequence.length - 25;
+        const startIdx = Math.floor(Math.random() * maxStart);
+        this.puzzleState.target = this.data.sequence.substr(startIdx, 25);
+        this.puzzleState.user = '';
+        this.puzzleState.penalties = 0;
+        this.puzzleState.active = true;
+        this.puzzleState.startTime = Date.now();
+        
+        document.getElementById('puzzleStartScreen').style.display = 'none';
+        document.getElementById('puzzleEndScreen').style.display = 'none';
+        document.getElementById('puzzleGameScreen').style.display = 'flex';
+        
+        this.renderPuzzleStrands();
+        
+        if (this.puzzleState.timerId) clearInterval(this.puzzleState.timerId);
+        this.puzzleState.timerId = setInterval(() => {
+            if(!this.puzzleState.active) return;
+            const elapsed = (Date.now() - this.puzzleState.startTime) / 1000;
+            const total = elapsed + (this.puzzleState.penalties * 1.5);
+            document.getElementById('puzTime').textContent = total.toFixed(1);
+        }, 100);
+        document.getElementById('puzPenalties').textContent = '0';
+    },
+    
+    renderPuzzleStrands: function() {
+        const tContainer = document.getElementById('puzTargetStrand');
+        const uContainer = document.getElementById('puzUserStrand');
+        tContainer.innerHTML = ''; uContainer.innerHTML = '';
+        
+        for (let i=0; i<this.puzzleState.target.length; i++) {
+            const tb = document.createElement('div');
+            tb.className = 'base-slot base-target';
+            tb.textContent = this.puzzleState.target[i];
+            tContainer.appendChild(tb);
+            
+            const ub = document.createElement('div');
+            if (i < this.puzzleState.user.length) {
+                const b = this.puzzleState.user[i];
+                ub.className = `base-slot base-filled ${b}`;
+                ub.textContent = b;
+            } else {
+                ub.className = 'base-slot base-empty';
+            }
+            uContainer.appendChild(ub);
+        }
+    },
+    
+    handleBaseClick: function(base) {
+        if (!this.puzzleState.active) return;
+        
+        const currentIdx = this.puzzleState.user.length;
+        const targetBase = this.puzzleState.target[currentIdx];
+        
+        const map = { 'A':'T', 'T':'A', 'G':'C', 'C':'G', 'U':'A' };
+        const correctBase = map[targetBase] || 'A';
+        
+        if (base === correctBase) {
+            this.puzzleState.user += base;
+            this.renderPuzzleStrands();
+            if (this.puzzleState.user.length === this.puzzleState.target.length) {
+                this.endPuzzle();
+            }
+        } else {
+            this.puzzleState.penalties++;
+            document.getElementById('puzPenalties').textContent = this.puzzleState.penalties;
+            const board = document.getElementById('puzzleGameScreen');
+            board.classList.remove('flash-red');
+            void board.offsetWidth;
+            board.classList.add('flash-red');
+        }
+    },
+    
+    endPuzzle: function() {
+        this.puzzleState.active = false;
+        clearInterval(this.puzzleState.timerId);
+        
+        const elapsed = (Date.now() - this.puzzleState.startTime) / 1000;
+        const total = (elapsed + (this.puzzleState.penalties * 1.5)).toFixed(1);
+        
+        document.getElementById('puzzleGameScreen').style.display = 'none';
+        document.getElementById('puzzleEndScreen').style.display = 'block';
+        
+        document.getElementById('puzFinalTime').textContent = total + 's';
+        document.getElementById('puzEndMsg').textContent = `You synthesized 25 base pairs of the ${this.data.metadata?.title ? this.data.metadata.title.substring(0,30)+'...' : 'genome'} with ${this.puzzleState.penalties} mutation penalty hits.`;
     }
 };
 
@@ -1359,6 +1508,15 @@ window.addEventListener('resize', () => {
     if(document.getElementById('view-dna').classList.contains('active')) {
         const canvas = document.getElementById('dnaCanvas');
         canvas.width = canvas.parentElement.clientWidth;
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (bioApp.puzzleState && bioApp.puzzleState.active) {
+        const key = e.key.toUpperCase();
+        if (['A', 'T', 'G', 'C'].includes(key)) {
+            bioApp.handleBaseClick(key);
+        }
     }
 });
 </script>

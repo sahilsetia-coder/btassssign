@@ -113,6 +113,13 @@
         .gene-card-name { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; }
         .gene-card-product { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.4; }
         .gene-card-pos { font-family: var(--font-mono); font-size: 0.75rem; color: var(--secondary); background: rgba(129,140,248,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; }
+        .lab-sim-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; transition: var(--transition); }
+        .lab-sim-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+        .lab-sim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .lab-action-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .lab-highlights { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 1rem; }
+        .lab-highlight { flex: 1; min-width: 190px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); border-radius: 12px; padding: 0.9rem; }
+        .lab-highlight strong { display: block; margin-bottom: 0.4rem; color: var(--primary); }
 
         /* --- MODAL --- */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2,6,23,0.85); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 1rem; }
@@ -268,6 +275,23 @@
         .typ-dot:nth-child(1) { animation-delay: 0s; } .typ-dot:nth-child(2) { animation-delay: 0.2s; } .typ-dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes typing { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
 
+        /* --- NEW ANIMATIONS --- */
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-5px); } }
+        @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes glow { 0%, 100% { box-shadow: 0 0 5px var(--primary); } 50% { box-shadow: 0 0 20px var(--primary), 0 0 30px var(--primary); } }
+        @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        /* Animation classes */
+        .animate-bounce { animation: bounce 1s ease; }
+        .animate-slide-in-left { animation: slideInLeft 0.5s ease-out; }
+        .animate-glow { animation: glow 2s infinite; }
+        .animate-wiggle { animation: wiggle 0.5s ease-in-out; }
+        .animate-fade-in-scale { animation: fadeInScale 0.3s ease-out; }
+        .animate-pulse { animation: pulse 1.2s infinite alternate; }
+        .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
+
         @media (max-width: 600px) {
             .academic-header { flex-direction: column; align-items: flex-start; gap: 10px; }
             .submission-badge { text-align: left; width: 100%; }
@@ -316,8 +340,8 @@
             <div class="nav-item" onclick="bioApp.switchTab('tools', this)">Thermodynamics</div>
             <div class="nav-item" onclick="bioApp.switchTab('literature', this)">📚 Literature</div>
             <div class="nav-item" onclick="bioApp.switchTab('geneinsights', this)">🧬 Gene Insights</div>
+            <div class="nav-item" onclick="bioApp.switchTab('lab', this)">🧪 Virtual Lab</div>
             <div class="nav-item" onclick="bioApp.switchTab('gcgraph', this)">📊 GC Graph</div>
-            <div class="nav-item" onclick="bioApp.switchTab('taxonomy', this)">🌳 Taxonomy</div>
             <div class="nav-item" onclick="bioApp.switchTab('fasta', this)">📄 FASTA</div>
             <div class="nav-item" onclick="bioApp.switchTab('puzzle', this)">🎮 Puzzle</div>
             <div class="nav-item" onclick="bioApp.switchTab('crispr', this)">✂️ CRISPR AI</div>
@@ -326,6 +350,8 @@
             <div class="nav-item" onclick="bioApp.switchTab('sixframe', this)">🔭 6-Frame</div>
             <div class="nav-item" onclick="bioApp.switchTab('proteinlookup', this)">🧫 Protein DB</div>
             <div class="nav-item" onclick="bioApp.switchTab('crossref', this)">🔗 Gene CrossRef</div>
+            <div class="nav-item" onclick="bioApp.switchTab('motif', this)">🔍 Motif Finder</div>
+            <div class="nav-item" onclick="bioApp.switchTab('api', this)">🧩 API Hub</div>
             <div class="nav-item" onclick="bioApp.switchTab('chatbot', this)">🤖 AI Assistant</div>
             <div class="nav-item" onclick="bioApp.switchTab('source', this)" style="color: var(--success);">💻 Source Code</div>
         </div>
@@ -336,6 +362,9 @@
         <button class="action-btn" id="mutationToggle" onclick="bioApp.toggleMutations()">🧬 Show Mutations</button>
         <button class="action-btn" onclick="bioApp.generateExplanation()">💡 Explain</button>
         <button class="action-btn" onclick="bioApp.downloadReport()">📥 Download Report</button>
+        <button class="action-btn" onclick="bioApp.downloadGeneAnnotationsCSV()">🧬 Export ORF CSV</button>
+        <button class="action-btn" onclick="bioApp.downloadMetadataJSON()">📦 Metadata JSON</button>
+        <button class="action-btn" onclick="bioApp.downloadPrimerSet()">🧪 Download Primer Set</button>
     </div>
 
     <main>
@@ -464,6 +493,7 @@
                         <span>Len: 20bp</span><span id="revGc">GC: 0%</span><strong id="revTm" style="color: var(--warning);">Tm: 0°C</strong>
                     </div>
                 </div>
+                <button class="btn" style="background: var(--secondary); padding: 10px 18px; font-size:0.85rem; width: fit-content;" onclick="bioApp.downloadPrimerSet()">📥 Download Primer Set</button>
             </div>
         </div>
 
@@ -513,8 +543,13 @@
         </div>
 
         <div id="view-geneinsights" class="view">
-            <h2 class="section-title">Gene Insights</h2>
-            <p class="section-desc">Annotated gene features parsed from NCBI GenBank records. Click any card for detailed information.</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px; flex-wrap:wrap;">
+                <div>
+                    <h2 class="section-title">Gene Insights</h2>
+                    <p class="section-desc">Annotated gene features parsed from NCBI GenBank records. Click any card for detailed information.</p>
+                </div>
+                <button class="btn" style="background: var(--secondary); padding: 10px 18px; font-size:0.85rem;" onclick="bioApp.downloadGeneAnnotationsCSV()">📥 Export Annotations</button>
+            </div>
             <div id="geneInsightsContainer" class="gene-cards-grid">
                 <div style="text-align:center; color:var(--text-muted); padding:2rem; grid-column:1/-1;">Run pipeline to fetch gene annotations...</div>
             </div>
@@ -703,6 +738,70 @@
             </div>
         </div>
 
+        <div id="view-api" class="view">
+            <h2 class="section-title">Universal API Hub</h2>
+            <p class="section-desc">This is the one place to access NCBI services directly. Query the same API endpoints powering the app and explore sequence data from a single interface.</p>
+            <div class="card" style="margin-bottom:1.5rem;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <select id="apiEndpointSelect" style="flex:0 1 220px; min-width:180px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white;">
+                        <option value="esearch">esearch (search IDs)</option>
+                        <option value="esummary">esummary (record summary)</option>
+                        <option value="efetch">efetch (full record)</option>
+                        <option value="elink">elink (cross links)</option>
+                    </select>
+                    <input type="text" id="apiQueryInput" placeholder="Enter search term or accession / ID" style="flex:1; min-width:220px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white;" />
+                    <button class="btn" style="padding:12px 20px;" onclick="bioApp.runApiHubQuery()">Run API</button>
+                </div>
+            </div>
+            <div id="apiHubResult" class="card" style="background: #020617; color: #e2e8f0; font-size:0.82rem; white-space: pre-wrap; overflow-x: auto; min-height:220px; line-height:1.5;">
+                Use the API Hub to query NCBI endpoints directly and inspect the returned data here.
+            </div>
+        </div>
+
+        <div id="view-lab" class="view">
+            <h2 class="section-title">Virtual Lab Simulator</h2>
+            <p class="section-desc">Select a gene, choose an editing strategy, and preview simulated effects of cut / insert / repair / CRISPR edits.</p>
+            <div class="card" style="margin-bottom:1.5rem; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <select id="labGeneSelect" style="flex:1; min-width:220px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white;"></select>
+                <select id="labOpType" style="flex:0 1 170px; min-width:150px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white;" onchange="bioApp.updateLabPlaceholder()">
+                    <option value="cut">Cut</option>
+                    <option value="insert">Insert</option>
+                    <option value="repair">Repair</option>
+                    <option value="crispr-nhej">CRISPR NHEJ</option>
+                    <option value="crispr-hdr">CRISPR HDR</option>
+                </select>
+                <select id="labTargetMode" style="flex:0 1 180px; min-width:150px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white;" onchange="bioApp.updateLabTargetMode()">
+                    <option value="auto">Auto target</option>
+                    <option value="custom">Custom position</option>
+                    <option value="pam">Find PAM site</option>
+                </select>
+                <input id="labTargetInput" type="number" min="1" placeholder="Position in bp" style="flex:0 1 120px; min-width:120px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white; display:none;" />
+                <input id="labValueInput" type="text" placeholder="Enter bp count or insertion sequence" style="flex:1; min-width:220px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white;" />
+                <button class="btn" style="padding:12px 20px;" onclick="bioApp.runLabSimulation()">Simulate Edit</button>
+                <button class="btn" style="background:var(--secondary); padding:12px 20px;" onclick="bioApp.downloadLabResult()">📥 Download Edit</button>
+            </div>
+            <div class="lab-highlights" id="labStatusCards">
+                <div class="lab-highlight"><strong>Gene sequence</strong><span id="labGeneLength">0 bp</span></div>
+                <div class="lab-highlight"><strong>Predicted ORFs</strong><span id="labGeneOrfs">0</span></div>
+                <div class="lab-highlight"><strong>Current target</strong><span id="labCurrentTarget">Auto</span></div>
+            </div>
+            <div id="labOutput" class="card" style="background:#020617; color:#e2e8f0; font-size:0.9rem; min-height:240px; white-space:pre-wrap; overflow-x:auto; line-height:1.5; margin-top:1rem;">
+                Select a gene and a mutation type, then run the simulation to see how the edit affects the sequence.
+            </div>
+        </div>
+
+        <div id="view-motif" class="view">
+            <h2 class="section-title">Motif Finder</h2>
+            <p class="section-desc">Search the loaded sequence for short motifs, repeats, or conserved patterns.</p>
+            <div class="card" style="margin-bottom:1.5rem; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <input id="motifInput" type="text" placeholder="Enter motif (e.g. ATGCG)" style="flex:1; min-width:220px; padding:12px; background:var(--bg-deep); border:1px solid var(--border); border-radius:8px; color:white;" />
+                <button class="btn" style="padding:12px 20px;" onclick="bioApp.runMotifSearch()">Find Motif</button>
+            </div>
+            <div id="motifResult" class="card" style="background:#020617; color:#e2e8f0; font-size:0.9rem; min-height:180px; white-space:pre-wrap; overflow-x:auto; line-height:1.5;">
+                Enter a motif and run the search. The app will count matches and show positions in the current sequence.
+            </div>
+        </div>
+
         <div id="view-crispr" class="view">
             <h2 class="section-title">AI CRISPR sgRNA Predictor ✂️</h2>
             <p class="section-desc">Machine learning heuristic engine modeling Cas9 efficacy against identified NGG Protospacer Adjacent Motifs.</p>
@@ -758,7 +857,7 @@
 const API_KEY = "52045ffc554ccc9ed245da43bee911cd8409";
 
 const bioApp = {
-    data: { accession: "", sequence: "", metadata: null, orfs: [], cpgIslands: [], pathology: {} },
+    data: { accession: "", sequence: "", metadata: null, orfs: [], genes: [], cpgIslands: [], pathology: {} },
     hintTimeout: null,
     sourceLoaded: false,
     dnaAnimationId: null,
@@ -918,7 +1017,9 @@ const bioApp = {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         btn.classList.add('active');
         document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-        document.getElementById(`view-${viewId}`).classList.add('active');
+        const newView = document.getElementById(`view-${viewId}`);
+        newView.classList.add('active', 'animate-fade-in-scale');
+        setTimeout(() => newView.classList.remove('animate-fade-in-scale'), 300); // Remove after animation
         btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         
         if(viewId === 'source') this.loadSourceCode();
@@ -926,6 +1027,9 @@ const bioApp = {
         if(viewId === 'gcgraph') this.renderGCGraph();
         if(viewId === 'plasmidvector') this.drawVectorMap();
         if(viewId === 'fasta') this.renderFasta();
+        if(viewId === 'api') this.prepareApiHub();
+        if(viewId === 'lab') this.prepareLabSimulator();
+        if(viewId === 'motif') this.prepareMotifSearch();
         if(viewId === 'crispr') this.runCrisprAI();
         if(viewId === 'restriction') this.runRestrictionMap();
         if(viewId === 'codonusage') this.runCodonUsage();
@@ -1100,7 +1204,10 @@ const bioApp = {
         if(!input) return alert("Search term required.");
         
         const btn = document.getElementById('runBtn');
+        btn.classList.add('animate-bounce');
+        setTimeout(() => btn.classList.remove('animate-bounce'), 1000);
         btn.disabled = true; btn.textContent = "Processing...";
+        btn.classList.add('animate-shimmer');
 
         try {
             this.setStatus("Resolving Search Query...");
@@ -1144,6 +1251,7 @@ const bioApp = {
             this.setStatus("Error encountered.");
         } finally {
             btn.disabled = false; btn.textContent = "Analyze";
+            btn.classList.remove('animate-shimmer');
         }
     },
 
@@ -1267,6 +1375,247 @@ const bioApp = {
         }
     },
 
+    prepareApiHub: function() {
+        const queryInput = document.getElementById('apiQueryInput');
+        const resultPanel = document.getElementById('apiHubResult');
+        queryInput.value = this.data.accession || this.data.metadata?.title || '';
+        resultPanel.textContent = 'Use the API Hub to query NCBI endpoints directly and inspect the returned data here.';
+    },
+
+    runApiHubQuery: async function() {
+        const endpoint = document.getElementById('apiEndpointSelect').value;
+        const query = document.getElementById('apiQueryInput').value.trim();
+        const resultPanel = document.getElementById('apiHubResult');
+        if (!query) {
+            return resultPanel.textContent = 'Please enter a search term, accession, or ID to query the API.';
+        }
+
+        resultPanel.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span class="spinner-inline"></span> Sending API request...</div>';
+        let url = '';
+        try {
+            if (endpoint === 'esearch') {
+                url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=nuccore&term=${encodeURIComponent(query)}&retmode=json&api_key=${API_KEY}`;
+            } else if (endpoint === 'esummary') {
+                url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=nuccore&id=${encodeURIComponent(query)}&retmode=json&api_key=${API_KEY}`;
+            } else if (endpoint === 'efetch') {
+                url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${encodeURIComponent(query)}&rettype=fasta&retmode=text&api_key=${API_KEY}`;
+            } else if (endpoint === 'elink') {
+                url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=nuccore&db=protein&id=${encodeURIComponent(query)}&retmode=json&api_key=${API_KEY}`;
+            }
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+            const text = await response.text();
+            try {
+                const json = JSON.parse(text);
+                resultPanel.textContent = JSON.stringify(json, null, 2);
+            } catch (jsonError) {
+                resultPanel.textContent = text;
+            }
+        } catch (error) {
+            resultPanel.textContent = `API error: ${error.message}`;
+        }
+    },
+
+    prepareMotifSearch: function() {
+        const input = document.getElementById('motifInput');
+        const resultPanel = document.getElementById('motifResult');
+        input.value = '';
+        resultPanel.textContent = this.data.sequence ? 'Enter a short nucleotide motif and click Find Motif.' : 'Load a sequence first using the Analyze button.';
+    },
+
+    runMotifSearch: function() {
+        const inputEl = document.getElementById('motifInput');
+        const resultPanel = document.getElementById('motifResult');
+        const motif = inputEl.value.trim().toUpperCase();
+        if (!motif || motif.length < 2) {
+            resultPanel.textContent = 'Please enter a motif of at least 2 bases.';
+            return;
+        }
+        if (!this.data.sequence) {
+            resultPanel.textContent = 'No loaded sequence available. Run the Analyze pipeline first.';
+            return;
+        }
+        const seq = this.data.sequence.toUpperCase();
+        const positions = [];
+        let index = seq.indexOf(motif);
+        while (index !== -1) {
+            positions.push(index + 1);
+            index = seq.indexOf(motif, index + 1);
+        }
+        if (positions.length === 0) {
+            resultPanel.textContent = `Motif ${motif} was not found in the loaded sequence.`;
+        } else {
+            resultPanel.textContent = `Found ${positions.length} occurrence(s) of ${motif} at positions:\n${positions.join(', ')}`;
+            resultPanel.classList.add('animate-fade-in-scale', 'animate-pulse');
+            setTimeout(() => resultPanel.classList.remove('animate-fade-in-scale'), 300);
+            setTimeout(() => resultPanel.classList.remove('animate-pulse'), 1200);
+        }
+    },
+
+    updateLabPlaceholder: function() {
+        const op = document.getElementById('labOpType').value;
+        const input = document.getElementById('labValueInput');
+        if (op === 'cut') input.placeholder = 'Enter cut length in bp (default 3)';
+        else if (op === 'insert') input.placeholder = 'Enter insertion sequence (e.g. ATG)';
+        else if (op === 'repair') input.placeholder = 'Enter repair sequence (matching region length)';
+        else if (op === 'crispr-hdr') input.placeholder = 'Enter HDR template sequence';
+        else if (op === 'crispr-nhej') input.placeholder = 'Enter expected alignment length (bp)';
+    },
+
+    updateLabTargetMode: function() {
+        const targetInput = document.getElementById('labTargetInput');
+        const mode = document.getElementById('labTargetMode').value;
+        targetInput.style.display = mode === 'custom' ? 'block' : 'none';
+        document.getElementById('labCurrentTarget').textContent = mode === 'auto' ? 'Auto midpoint' : mode === 'pam' ? 'PAM site' : 'Custom position';
+    },
+
+    prepareLabSimulator: function() {
+        const select = document.getElementById('labGeneSelect');
+        const output = document.getElementById('labOutput');
+        const geneLen = document.getElementById('labGeneLength');
+        const geneOrfs = document.getElementById('labGeneOrfs');
+        select.innerHTML = '';
+        const genes = (this.data.genes && this.data.genes.length) ? this.data.genes : (this.data.orfs && this.data.orfs.length) ? this.data.orfs : [];
+        if (!genes || genes.length === 0) {
+            select.innerHTML = '<option value="">No genes available</option>';
+            output.textContent = 'No gene data available. Run the pipeline and fetch gene annotations first.';
+            geneLen.textContent = '0 bp';
+            geneOrfs.textContent = '0';
+            return;
+        }
+        genes.forEach((item, idx) => {
+            const label = item.gene ? `${item.gene} (${item.start || '?'}-${item.end || '?'})` : item.id ? `${item.id} (${item.start || '?'})` : `Record ${idx + 1}`;
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = label;
+            select.appendChild(opt);
+        });
+        select.value = 0;
+        this.updateLabPlaceholder();
+        this.updateLabTargetMode();
+        const selectedGene = genes[0];
+        const seq = selectedGene.dna ? selectedGene.dna : (selectedGene.start && selectedGene.end ? this.data.sequence.substring(selectedGene.start - 1, selectedGene.end) : '');
+        geneLen.textContent = seq ? `${seq.length} bp` : 'N/A';
+        geneOrfs.textContent = (this.data.orfs && this.data.orfs.length) ? this.data.orfs.length : '0';
+        output.textContent = 'Select a gene and a mutation type, then simulate the edit.';
+    },
+
+    runLabSimulation: function() {
+        const select = document.getElementById('labGeneSelect');
+        const op = document.getElementById('labOpType').value;
+        const mode = document.getElementById('labTargetMode').value;
+        const value = document.getElementById('labValueInput').value.trim().toUpperCase();
+        const targetInput = document.getElementById('labTargetInput').value.trim();
+        const output = document.getElementById('labOutput');
+        if (select.value === '') {
+            output.textContent = 'Choose a gene from the list.';
+            return;
+        }
+        const genes = (this.data.genes && this.data.genes.length) ? this.data.genes : this.data.orfs;
+        const gene = genes[parseInt(select.value, 10)];
+        if (!gene) {
+            output.textContent = 'Unable to locate gene data.';
+            return;
+        }
+        const seq = gene.dna ? gene.dna.toUpperCase() : (gene.start && gene.end ? this.data.sequence.substring(gene.start - 1, gene.end).toUpperCase() : '');
+        if (!seq) {
+            output.textContent = 'Sequence not available for this gene.';
+            return;
+        }
+        let pos;
+        if (mode === 'custom') {
+            pos = parseInt(targetInput, 10) - 1;
+            if (!Number.isInteger(pos) || pos < 0 || pos >= seq.length) {
+                output.textContent = 'Enter a valid custom target position within the gene.';
+                return;
+            }
+        } else if (mode === 'pam') {
+            let found = -1;
+            for (let i = 0; i < seq.length - 2; i++) {
+                const tri = seq.substring(i, i + 3);
+                if (/^[ATGC]GG$/.test(tri)) { found = i; break; }
+            }
+            if (found === -1) {
+                output.textContent = 'No NGG PAM site found in the selected gene.';
+                return;
+            }
+            pos = Math.max(0, found - 3);
+        } else {
+            pos = Math.max(0, Math.min(seq.length - 3, Math.floor(seq.length / 2)));
+        }
+        let mutated = seq;
+        let description = '';
+        let summaryName = op.toUpperCase();
+        if (op === 'cut') {
+            const len = parseInt(value, 10) || 3;
+            mutated = seq.slice(0, pos) + seq.slice(pos + len);
+            description = `Cut ${len} bp at position ${pos + 1}. ${len % 3 === 0 ? 'In-frame deletion.' : 'Frameshift deletion.'}`;
+        } else if (op === 'insert') {
+            const insertSeq = value || 'ATG';
+            mutated = seq.slice(0, pos) + insertSeq + seq.slice(pos);
+            description = `Inserted ${insertSeq.length} bp at position ${pos + 1}. ${insertSeq.length % 3 === 0 ? 'In-frame insertion.' : 'Frameshift insertion.'}`;
+        } else if (op === 'repair') {
+            const repairSeq = value || seq.slice(pos, pos + 3);
+            mutated = seq.slice(0, pos) + repairSeq + seq.slice(pos + repairSeq.length);
+            description = `Repaired around position ${pos + 1} with ${repairSeq.length} bp.`;
+        } else if (op === 'crispr-nhej') {
+            const len = parseInt(value, 10) || 3;
+            const cutPos = Math.max(0, pos);
+            mutated = seq.slice(0, cutPos) + seq.slice(cutPos + len);
+            description = `Simulated CRISPR NHEJ cut at position ${cutPos + 1} removing ${len} bp. ${len % 3 === 0 ? 'Likely in-frame.' : 'Predicted frameshift.'}`;
+            summaryName = 'CRISPR NHEJ';
+        } else if (op === 'crispr-hdr') {
+            const hdrSeq = value || 'ATG';
+            const cutPos = Math.max(0, pos);
+            mutated = seq.slice(0, cutPos) + hdrSeq + seq.slice(cutPos);
+            description = `Simulated CRISPR HDR insertion at ${cutPos + 1} with ${hdrSeq.length} bp repair template.`;
+            summaryName = 'CRISPR HDR';
+        }
+        const targetLabel = mode === 'auto' ? `Auto @ ${pos + 1}` : mode === 'pam' ? `PAM guide near ${pos + 4}` : `Custom @ ${pos + 1}`;
+        document.getElementById('labCurrentTarget').textContent = targetLabel;
+        const geneLabel = gene.gene || gene.id || `Gene ${parseInt(select.value, 10) + 1}`;
+        const oldProt = this.translateCodingSequence(seq);
+        const newProt = this.translateCodingSequence(mutated);
+        output.innerHTML = `
+            <div style="font-weight:700;color:var(--primary);margin-bottom:0.75rem;">${geneLabel} — ${summaryName}</div>
+            <div class="lab-sim-grid" style="margin-bottom:1rem;">
+                <div class="lab-sim-card"><div class="card-label">Original length</div><div class="card-value">${seq.length} bp</div></div>
+                <div class="lab-sim-card"><div class="card-label">Edited length</div><div class="card-value">${mutated.length} bp</div></div>
+                <div class="lab-sim-card"><div class="card-label">Predicted protein</div><div class="card-value">${newProt.length} aa</div></div>
+            </div>
+            <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">${description}</div>
+            <div class="lab-sim-grid">
+                <div class="lab-sim-card"><div class="card-label">Original protein preview</div><div class="seq-box" style="max-height:140px; overflow-y:auto;">${oldProt.substring(0, 120)}${oldProt.length > 120 ? '...' : ''}</div></div>
+                <div class="lab-sim-card"><div class="card-label">Edited protein preview</div><div class="seq-box" style="max-height:140px; overflow-y:auto;">${newProt.substring(0, 120)}${newProt.length > 120 ? '...' : ''}</div></div>
+            </div>
+        `;
+        this.lastLabSimulation = {
+            geneLabel,
+            summaryName,
+            targetLabel,
+            description,
+            originalLength: seq.length,
+            editedLength: mutated.length,
+            originalSequence: seq,
+            editedSequence: mutated,
+            originalProtein: oldProt,
+            editedProtein: newProt
+        };
+        output.classList.add('animate-fade-in-scale');
+        setTimeout(() => output.classList.remove('animate-fade-in-scale'), 300);
+    },
+
+    translateCodingSequence: function(dnaSeq) {
+        let protein = '';
+        for (let i = 0; i < dnaSeq.length - 2; i += 3) {
+            const codon = dnaSeq.substr(i, 3);
+            if (codon.length < 3) break;
+            protein += this.codons[codon] || 'X';
+            if (codon === 'TAA' || codon === 'TAG' || codon === 'TGA') break;
+        }
+        return protein;
+    },
+
     calculatePrimers: function() {
         const idx = document.getElementById('primerSelect').value;
         if(idx === "") return;
@@ -1326,10 +1675,25 @@ const bioApp = {
     },
 
     updateDOM: function() {
-        document.getElementById('stat-len').textContent = (this.data.sequence.length / 1000).toFixed(1) + ' kb';
-        document.getElementById('stat-gc').textContent = this.data.gcPercent + '%';
-        document.getElementById('stat-orfs').textContent = this.data.orfs.length;
-        document.getElementById('stat-cpg').textContent = this.data.cpgIslands.length;
+        const statLen = document.getElementById('stat-len');
+        statLen.textContent = (this.data.sequence.length / 1000).toFixed(1) + ' kb';
+        statLen.parentElement.classList.add('animate-fade-in-scale');
+        setTimeout(() => statLen.parentElement.classList.remove('animate-fade-in-scale'), 300);
+
+        const statGc = document.getElementById('stat-gc');
+        statGc.textContent = this.data.gcPercent + '%';
+        statGc.parentElement.classList.add('animate-fade-in-scale');
+        setTimeout(() => statGc.parentElement.classList.remove('animate-fade-in-scale'), 300);
+
+        const statOrfs = document.getElementById('stat-orfs');
+        statOrfs.textContent = this.data.orfs.length;
+        statOrfs.parentElement.classList.add('animate-fade-in-scale');
+        setTimeout(() => statOrfs.parentElement.classList.remove('animate-fade-in-scale'), 300);
+
+        const statCpg = document.getElementById('stat-cpg');
+        statCpg.textContent = this.data.cpgIslands.length;
+        statCpg.parentElement.classList.add('animate-fade-in-scale');
+        setTimeout(() => statCpg.parentElement.classList.remove('animate-fade-in-scale'), 300);
         
         let m = this.data.metadata;
         document.getElementById('meta-acc').textContent = this.data.accession;
@@ -1781,9 +2145,96 @@ const bioApp = {
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `BioReport_${acc}.txt`; a.click();
     },
 
+    downloadGeneAnnotationsCSV: function() {
+        const orfs = this.data.orfs || [];
+        if (!orfs.length) return alert('Run the pipeline first to collect ORF data.');
+        const header = ['Type', 'ID', 'Start', 'End', 'Length', 'ProteinLength', 'MW'];
+        const rows = [header.join(',')];
+        orfs.forEach(o => {
+            rows.push([
+                'ORF',
+                o.id || 'Unknown',
+                o.start || '?',
+                o.stop || '?',
+                o.length || (o.stop && o.start ? o.stop - o.start + 1 : '?'),
+                o.protein ? o.protein.length : 0,
+                o.mw || 'N/A'
+            ].join(','));
+        });
+        const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${this.data.accession || 'sequence'}_ORFs.csv`;
+        a.click();
+    },
+
+    downloadMetadataJSON: function() {
+        if (!this.data.sequence) return alert('Run the pipeline first.');
+        const snapshot = {
+            accession: this.data.accession,
+            metadata: this.data.metadata,
+            length: this.data.sequence.length,
+            gcPercent: this.data.gcPercent,
+            orfCount: this.data.orfs.length,
+            geneCount: (this.data.genes || []).length,
+            cpgIslands: this.data.cpgIslands
+        };
+        const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${this.data.accession || 'sequence'}_metadata.json`;
+        a.click();
+    },
+
+    downloadLabResult: function() {
+        if (!this.lastLabSimulation) return alert('Run a lab edit simulation first.');
+        const data = this.lastLabSimulation;
+        let txt = `BioWorkbench Lab Simulation Report\n`;
+        txt += `Gene: ${data.geneLabel}\n`;
+        txt += `Operation: ${data.summaryName}\n`;
+        txt += `Target: ${data.targetLabel}\n`;
+        txt += `Description: ${data.description}\n`;
+        txt += `Original length: ${data.originalLength} bp\n`;
+        txt += `Edited length: ${data.editedLength} bp\n\n`;
+        txt += `Original Sequence:\n${data.originalSequence}\n\n`;
+        txt += `Edited Sequence:\n${data.editedSequence}\n\n`;
+        txt += `Original Protein:\n${data.originalProtein}\n\n`;
+        txt += `Edited Protein:\n${data.editedProtein}\n`;
+        const blob = new Blob([txt], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${data.geneLabel.replace(/\s+/g, '_')}_lab_simulation.txt`;
+        a.click();
+    },
+
+    downloadPrimerSet: function() {
+        const resultsVisible = document.getElementById('primerResults').style.display !== 'none';
+        if (!resultsVisible) return alert('Generate a primer set first.');
+        const target = document.getElementById('primerSelect').value;
+        if (!target) return alert('Select a gene target first.');
+        const gene = this.data.orfs[target];
+        const fwd = document.getElementById('fwdSeq').textContent;
+        const rev = document.getElementById('revSeq').textContent;
+        const fwdGc = document.getElementById('fwdGc').textContent;
+        const fwdTm = document.getElementById('fwdTm').textContent;
+        const revGc = document.getElementById('revGc').textContent;
+        const revTm = document.getElementById('revTm').textContent;
+        let txt = `Primer Set for ${gene.id || 'Unknown'}\n`;
+        txt += `Forward: ${fwd}\n`;
+        txt += `Reverse: ${rev}\n`;
+        txt += `${fwdGc} | ${fwdTm}\n`;
+        txt += `${revGc} | ${revTm}\n`;
+        txt += `Target region: ${gene.start}-${gene.stop} bp\n`;
+        const blob = new Blob([txt], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${this.data.accession || 'sequence'}_primer_set.txt`;
+        a.click();
+    },
+
     startPuzzle: function() {
         if (!this.data.sequence || this.data.sequence.length < 50) return alert("Please run pipeline to load a genome first.");
-        
+
         const maxStart = this.data.sequence.length - 25;
         const startIdx = Math.floor(Math.random() * maxStart);
         this.puzzleState.target = this.data.sequence.substr(startIdx, 25);
@@ -1791,23 +2242,23 @@ const bioApp = {
         this.puzzleState.penalties = 0;
         this.puzzleState.active = true;
         this.puzzleState.startTime = Date.now();
-        
+
         document.getElementById('puzzleStartScreen').style.display = 'none';
         document.getElementById('puzzleEndScreen').style.display = 'none';
         document.getElementById('puzzleGameScreen').style.display = 'flex';
-        
+
         this.renderPuzzleStrands();
-        
+
         if (this.puzzleState.timerId) clearInterval(this.puzzleState.timerId);
         this.puzzleState.timerId = setInterval(() => {
-            if(!this.puzzleState.active) return;
+            if (!this.puzzleState.active) return;
             const elapsed = (Date.now() - this.puzzleState.startTime) / 1000;
             const total = elapsed + (this.puzzleState.penalties * 1.5);
             document.getElementById('puzTime').textContent = total.toFixed(1);
         }, 100);
         document.getElementById('puzPenalties').textContent = '0';
     },
-    
+
     renderPuzzleStrands: function() {
         const tContainer = document.getElementById('puzTargetStrand');
         const uContainer = document.getElementById('puzUserStrand');
@@ -2518,7 +2969,15 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+// Animate nav items on load
+document.addEventListener('DOMContentLoaded', () => {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.1}s`;
+        item.classList.add('animate-slide-in-left');
+    });
+});
 </script>
 </body>
 </html>
-
